@@ -10,10 +10,18 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:firstlesson.SeeTree"
+    "*"
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "views": {
+      "explorer": [
+        {
+          "id": "treeView",
+          "name": "Tree View"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "firstlesson.SeeTree",

@@ -9,16 +9,28 @@
  * need to import classes and functions to make it work. This is where we
  * import theses things.
  */
-import { commands, window, workspace, ViewColumn } from "vscode";
+import {
+  commands,
+  window,
+  workspace,
+  TreeDataProvider,
+  TreeItem,
+  ProviderResult,
+  TreeItemCollapsibleState,
+} from "vscode";
 
 /**
  * Library to parse the Typescript.
  * Link : https://ts-morph.com/
  */
-import { Project } from "ts-morph";
+import {
+  LabeledStatement,
+  NoSubstitutionTemplateLiteral,
+  Project,
+} from "ts-morph";
 
-import type { SourceFile, Node } from "ts-morph";
-import type { ExtensionContext, TextDocument, WebviewPanel } from "vscode";
+import type { SourceFile, Node, ts } from "ts-morph";
+import type { ExtensionContext, TextDocument, Disposable } from "vscode";
 
 /**
  * ? ====== FUNCTION DECLARATION ======
@@ -50,6 +62,30 @@ const parser = (lines: string[], node: Node, indent = 0): void => {
 };
 
 /**
+ * ? ====== CLASS DECLARATION PART ======
+ */
+class TreeProvider implements TreeDataProvider<Node<ts.Node>> {
+  constructor(private root: SourceFile) {}
+
+  getTreeItem(element: Node<ts.Node>): TreeItem | Thenable<TreeItem> {
+    return new TreeItem(
+      element.getKindName(),
+      TreeItemCollapsibleState.Expanded
+    );
+  }
+
+  getChildren(
+    element?: Node<ts.Node> | undefined
+  ): ProviderResult<Node<ts.Node>[]> {
+    if (element === undefined) {
+      return [this.root];
+    }
+
+    return element.getChildren();
+  }
+}
+
+/**
  * ? ====== EXTENSION PART ======
  *
  * Activation Events : https://code.visualstudio.com/api/references/activation-events
@@ -69,9 +105,8 @@ export function activate(context: ExtensionContext) {
     useInMemoryFileSystem: true,
   });
 
-  // The webview (aka. right panel containing the AST)
-  // Type is also undefined because it is not yet defined.
-  let view: WebviewPanel | undefined;
+  let sourceFile: SourceFile | undefined;
+  let treeView: Disposable | undefined;
 
   // Event Handler
   //
@@ -79,40 +114,22 @@ export function activate(context: ExtensionContext) {
   let saveEvent = workspace.onDidSaveTextDocument((file: TextDocument) => {
     // If there is no view loaded or the language of the current file
     // is not "typescript", we exit the function
-    console.log(view, file.languageId);
-    if (view === undefined || file.languageId !== "typescript") {
+    if (file.languageId !== "typescript") {
       return;
     }
 
     // ts-morph creates a temporary file with the content of the file
     // we are currently working on, it creates its own file so as to
     // handle its content
-    const sourceFile: SourceFile = project.createSourceFile(
-      "__temp__.ts",
-      file.getText()
-    );
-    console.log(sourceFile.getKindName());
+    sourceFile = project.createSourceFile("__temp__.ts", file.getText());
 
-    let lines: string[] = [];
-
-    // Parse the sourceFile (the parser function will update the lines array with the right content)
-    parser(lines, sourceFile);
-
-    // Update the webview HTML content with the lines
-    view.webview.html = `
-      <!DOCTYPE html>
-			<html>
-        <head>
-          <title>Page Title</title>
-        </head>
-   
-        <body>
-          <pre>
-${lines.join("\n")}
-          </pre>
-        </body>
-      </html>
-    `;
+    if (!treeView) {
+      treeView = window.registerTreeDataProvider(
+        "treeView",
+        new TreeProvider(sourceFile)
+      );
+      context.subscriptions.push(treeView);
+    }
   });
 
   // Command Registration
@@ -120,28 +137,7 @@ ${lines.join("\n")}
   // Register a command named "firstlesson.SeeTree", check the "package.json" file to
   // see the registered command.
   let disposable = commands.registerCommand("firstlesson.SeeTree", () => {
-    // if (view) view.dispose();
-
-    // Update the view variable with the newly created webview.
-    // The first parameter is the identifier of the webview (not very important),
-    // the second one is the title (what is showed as the title of the tab) and the last one
-    // is the place where it will pop on the window (here, the second column).
-    view = window.createWebviewPanel("webtree", "seetree", ViewColumn.Two);
-
-    // Update the webview HTML
-    view.webview.html = `
-      <!DOCTYPE html>
-			<html>
-        <head>
-          <title>Page Title</title>
-        </head>
-   
-        <body>  
-          <h1>This is a Heading</h1>
-          <p>This is a paragraph.</p>
-        </body>
-      </html>
-    `;
+    console.log("Command called !");
   });
 
   // Push the event handler and the command registration to the extension subscriptions
