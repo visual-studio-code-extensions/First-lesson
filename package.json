@@ -26,6 +26,10 @@
       {
         "command": "firstlesson.SeeTree",
         "title": "See Tree"
+      },
+      {
+        "command": "firstlesson.CountNodes",
+        "title": "Count Nodes"
       }
     ]
   },

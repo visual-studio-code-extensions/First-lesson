@@ -61,6 +61,16 @@ const parser = (lines: string[], node: Node, indent = 0): void => {
   node.forEachChild((child) => parser(lines, child, indent + 2));
 };
 
+const countNodes = (node: Node<ts.Node>): number => {
+  let total = 1;
+
+  for (const child of node.getChildren()) {
+    total += countNodes(child);
+  }
+
+  return total;
+};
+
 /**
  * ? ====== CLASS DECLARATION PART ======
  */
@@ -140,9 +150,23 @@ export function activate(context: ExtensionContext) {
     console.log("Command called !");
   });
 
+  let countNodesCommand = commands.registerCommand(
+    "firstlesson.CountNodes",
+    () => {
+      if (sourceFile === undefined) {
+        return;
+      }
+
+      const count = countNodes(sourceFile);
+      window.showInformationMessage(
+        `There are ${count} nodes in the abstract syntax tree.`
+      );
+    }
+  );
+
   // Push the event handler and the command registration to the extension subscriptions
   // this is not compulsary but a good practice, it helps the extension handle things better.
-  context.subscriptions.push(disposable, saveEvent);
+  context.subscriptions.push(disposable, saveEvent, countNodesCommand);
 }
 
 // this method is called when your extension is deactivated
