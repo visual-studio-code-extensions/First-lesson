@@ -15,7 +15,7 @@ import { commands, window, workspace, ViewColumn } from "vscode";
  * Library to parse the Typescript.
  * Link : https://ts-morph.com/
  */
-import { Project } from "ts-morph";
+import { Project, ts } from "ts-morph";
 
 import type { SourceFile, Node } from "ts-morph";
 import type { ExtensionContext, TextDocument, WebviewPanel } from "vscode";
@@ -44,8 +44,24 @@ const multChar = (char: string, amount: number): string => {
  * node - The actual node
  * indent - The indentation (the space before the node's name)
  */
-const parser = (lines: string[], node: Node, indent = 0): void => {
-  lines.push(multChar(" ", indent) + node.getKindName());
+const parser = (
+  lines: {
+    label: string;
+    indent: number;
+    pos: number;
+    end: number;
+    flags: ts.NodeFlags;
+  }[],
+  node: Node,
+  indent = 0
+): void => {
+  lines.push({
+    label: node.getKindName(),
+    indent: indent,
+    pos: node.getPos(),
+    end: node.getEnd(),
+    flags: node.getFlags(),
+  });
   node.forEachChild((child) => parser(lines, child, indent + 2));
 };
 
@@ -93,7 +109,13 @@ export function activate(context: ExtensionContext) {
     );
     console.log(sourceFile.getKindName());
 
-    let lines: string[] = [];
+    let lines: {
+      label: string;
+      indent: number;
+      pos: number;
+      end: number;
+      flags: ts.NodeFlags;
+    }[] = [];
 
     // Parse the sourceFile (the parser function will update the lines array with the right content)
     parser(lines, sourceFile);
@@ -105,11 +127,33 @@ export function activate(context: ExtensionContext) {
         <head>
           <title>Page Title</title>
         </head>
-   
+
+        <style>
+          * {
+            margin: 0;
+            padding: 0;
+          }
+
+          p:hover {
+            text-decoration: underline;
+          }
+        </style>
+
         <body>
-          <pre>
-${lines.join("\n")}
-          </pre>
+          ${lines
+            .map((line, index) => {
+              return `<div
+                        style="margin-left: ${line.indent * 8}px"
+                      >
+                        <p>${line.label}</p>
+                        <ul>
+                          <li>pos : ${line.pos}</li>
+                          <li>end : ${line.end}</li>
+                          <li>flags : ${line.flags}</li>
+                        </ul>
+                      </div>`;
+            })
+            .join("\n")}
         </body>
       </html>
     `;
