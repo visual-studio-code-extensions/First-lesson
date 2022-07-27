@@ -13,26 +13,7 @@
     "*"
   ],
   "main": "./out/extension.js",
-  "contributes": {
-    "views": {
-      "explorer": [
-        {
-          "id": "treeView",
-          "name": "Tree View"
-        }
-      ]
-    },
-    "commands": [
-      {
-        "command": "firstlesson.SeeTree",
-        "title": "See Tree"
-      },
-      {
-        "command": "firstlesson.CountNodes",
-        "title": "Count Nodes"
-      }
-    ]
-  },
+  "contributes": {},
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
